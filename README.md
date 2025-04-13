@@ -1,7 +1,5 @@
 # ⚡ HyperScanner (hxscanner) v1.0
 
-![banner](https://raw.githubusercontent.com/nxneeraj/hxscanner/main/banner.png)
-
 **HyperScanner** is a powerful and futuristic HTTP status code scanner that takes a list of IPs and classifies their responses into structured folders and files. Designed with speed, clarity, and beauty in mind — it’s perfect for hackers, sysadmins, and bug bounty hunters ⚔️
 
 ---
