@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+
 	"github.com/fatih/color"
 )
 
@@ -16,7 +17,6 @@ var (
 	white   = color.New(color.FgHiWhite).SprintFunc()
 )
 
-// PrintBanner shows the startup banner
 func PrintBanner() {
 	banner := `
 ██╗  ██╗██╗  ██╗     ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗ 
@@ -33,7 +33,6 @@ func PrintBanner() {
 	fmt.Println(cyan(banner))
 }
 
-// LogResult prints the scan result with colored status
 func LogResult(url string, code int) {
 	var status string
 
@@ -55,17 +54,14 @@ func LogResult(url string, code int) {
 	fmt.Printf("➡️  %s -> %s\n", url, status)
 }
 
-// LogInfo prints general info messages
 func LogInfo(msg string) {
 	fmt.Println(white("[*] "), msg)
 }
 
-// LogError prints errors
 func LogError(msg string) {
 	fmt.Println(red("[!] "), msg)
 }
 
-// LogSuccess prints success message
 func LogSuccess(msg string) {
 	fmt.Println(green("[✓] "), msg)
 }
