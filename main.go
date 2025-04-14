@@ -11,10 +11,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	. "hxscanner/ui"
-	. "hxscanner/init"
-	. "hxscanner/installer"
 )
 
 // Result holds individual scan results
