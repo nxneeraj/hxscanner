@@ -11,6 +11,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/nxneeraj/hxscanner/installer"
+	"github.com/nxneeraj/hxscanner/ui"
+	"github.com/nxneeraj/hxscanner/init"
 )
 
 // Result holds individual scan results
