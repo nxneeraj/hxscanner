@@ -6,43 +6,43 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
-	"net/http"
 
 	. "hxscanner/ui"
 	. "hxscanner/init"
 )
 
-// Result holds scanning output
 type Result struct {
 	URL    string `json:"url"`
 	Status int    `json:"status"`
 }
 
 var (
-	inputFile     string
-	outputJSON    string
-	outputCSV     string
-	concurrency   int
-	maxRetries    int
-	showHelp      bool
-	results       []Result
-	resultMutex   sync.Mutex
-	wg            sync.WaitGroup
-	sem           chan struct{}
+	inputFile   string
+	outputJSON  string
+	outputCSV   string
+	concurrency int
+	maxRetries  int
+	showHelp    bool
+
+	results     []Result
+	resultMutex sync.Mutex
+	wg          sync.WaitGroup
+	sem         chan struct{}
 )
 
 func init() {
-	flag.StringVar(&inputFile, "i", "", "Input file with IPs/URLs")
+	flag.StringVar(&inputFile, "i", "", "Input file containing IPs/URLs")
 	flag.StringVar(&inputFile, "f", "", "Alias for -i")
-	flag.StringVar(&outputJSON, "json", "output.json", "Save results to JSON")
-	flag.StringVar(&outputCSV, "csv", "output.csv", "Save results to CSV")
-	flag.IntVar(&concurrency, "c", 100, "Number of parallel scans")
-	flag.IntVar(&maxRetries, "r", 1, "Number of retry attempts for failed requests")
-	flag.BoolVar(&showHelp, "h", false, "Show help")
+	flag.StringVar(&outputJSON, "json", "output.json", "Save results as JSON")
+	flag.StringVar(&outputCSV, "csv", "output.csv", "Save results as CSV")
+	flag.IntVar(&concurrency, "c", 100, "Concurrent scan limit")
+	flag.IntVar(&maxRetries, "r", 1, "Retry attempts for failed requests")
+	flag.BoolVar(&showHelp, "h", false, "Display help information")
 }
 
 func main() {
@@ -54,9 +54,9 @@ func main() {
 		return
 	}
 
-	SetupEnv() // init.go
+	SetupEnv() // From init.go
 
-	urls, err := readInput(inputFile)
+	urls, err := readInputFile(inputFile)
 	if err != nil {
 		fmt.Println("❌ Failed to read input file:", err)
 		return
@@ -64,20 +64,21 @@ func main() {
 
 	sem = make(chan struct{}, concurrency)
 
-	start := time.Now()
+	startTime := time.Now()
 	for _, url := range urls {
 		wg.Add(1)
 		go scanURL(url)
 	}
 	wg.Wait()
-	elapsed := time.Since(start)
+	elapsed := time.Since(startTime)
 
-	saveJSON(outputJSON)
-	saveCSV(outputCSV)
+	saveResultsJSON(outputJSON)
+	saveResultsCSV(outputCSV)
+
 	fmt.Printf("\n✅ Scan completed in %s\n", elapsed)
 }
 
-func readInput(filename string) ([]string, error) {
+func readInputFile(filename string) ([]string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -89,7 +90,7 @@ func readInput(filename string) ([]string, error) {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line != "" {
-			if !strings.HasPrefix(line, "http") {
+			if !strings.HasPrefix(line, "http://") && !strings.HasPrefix(line, "https://") {
 				line = "http://" + line
 			}
 			urls = append(urls, line)
@@ -105,13 +106,13 @@ func scanURL(url string) {
 
 	var resp *http.Response
 	var err error
-	for i := 0; i <= maxRetries; i++ {
+	for attempt := 0; attempt <= maxRetries; attempt++ {
 		resp, err = http.Get(url)
 		if err == nil && resp != nil {
 			defer resp.Body.Close()
 			break
 		}
-		time.Sleep(300 * time.Millisecond) // Retry delay
+		time.Sleep(300 * time.Millisecond) // wait before retry
 	}
 
 	status := 0
@@ -126,25 +127,29 @@ func scanURL(url string) {
 	resultMutex.Unlock()
 }
 
-func saveJSON(filename string) {
+func saveResultsJSON(filename string) {
 	data, err := json.MarshalIndent(results, "", "  ")
 	if err != nil {
-		fmt.Println("❌ Error saving JSON:", err)
+		fmt.Println("❌ Failed to save JSON:", err)
 		return
 	}
-	os.WriteFile(filename, data, 0644)
+	err = os.WriteFile(filename, data, 0644)
+	if err != nil {
+		fmt.Println("❌ Failed to write JSON file:", err)
+	}
 }
 
-func saveCSV(filename string) {
+func saveResultsCSV(filename string) {
 	file, err := os.Create(filename)
 	if err != nil {
-		fmt.Println("❌ Error saving CSV:", err)
+		fmt.Println("❌ Failed to create CSV file:", err)
 		return
 	}
 	defer file.Close()
 
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
+
 	writer.Write([]string{"URL", "Status"})
 	for _, r := range results {
 		writer.Write([]string{r.URL, fmt.Sprintf("%d", r.Status)})
