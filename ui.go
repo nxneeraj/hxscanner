@@ -2,12 +2,20 @@ package ui
 
 import (
 	"fmt"
-	"strconv"
-
-	"github.com/fatih/color"
 )
 
-// ShowBanner prints ASCII art banner
+const (
+	Red     = "\033[31m"
+	Green   = "\033[32m"
+	Yellow  = "\033[33m"
+	Blue    = "\033[34m"
+	Cyan    = "\033[36m"
+	White   = "\033[97m"
+	Magenta = "\033[35m"
+	Reset   = "\033[0m"
+	Bold    = "\033[1m"
+)
+
 func ShowBanner() {
 	banner := `
 ██╗  ██╗██╗  ██╗     ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗
@@ -18,45 +26,34 @@ func ShowBanner() {
 ╚═╝  ╚═╝╚═╝  ╚═╝     ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
 
 HyperScanner v1.1 🔥  -  Ultra Fast HTTP Status Scanner
-
 `
-	fmt.Println(color.HiMagentaString(banner))
+	fmt.Println(string(Cyan) + Bold + banner + Reset)
 }
 
-// ShowHelp prints help
 func ShowHelp() {
-	fmt.Println(`Usage:
-  -i <file>      Input file with IPs/URLs
-  -f <file>      Alias for -i
-  -c <int>       Concurrency (default: 100)
-  -r <int>       Retries (default: 1)
-  -json <file>   Save output to JSON file (default: output.json)
-  -csv <file>    Save output to CSV file (default: output.csv)
-  -h             Show this help
-
-Example:
-  hxscanner -i list.txt -c 200 -r 2
-`)
+	fmt.Println(string(Yellow) + Bold + "\nUsage:")
+	fmt.Println(string(White) + "  hyperscanner -i input.txt -json results.json -csv results.csv -c 100 -r 2")
+	fmt.Println(string(Yellow) + Bold + "\nOptions:")
+	fmt.Println(string(Green) + "  -i, -f" + string(White) + "      Input file containing list of targets (IP or domain)")
+	fmt.Println(string(Green) + "  -json" + string(White) + "     Output file for JSON results (default: output.json)")
+	fmt.Println(string(Green) + "  -csv" + string(White) + "      Output file for CSV results (default: output.csv)")
+	fmt.Println(string(Green) + "  -c" + string(White) + "         Concurrency level (default: 100)")
+	fmt.Println(string(Green) + "  -r" + string(White) + "         Max retries per request (default: 1)")
+	fmt.Println(string(Green) + "  -h" + string(White) + "         Show help info")
+	fmt.Println(string(Reset))
 }
 
-// PrintStatus shows colored status result
 func PrintStatus(url string, status int) {
-	var statusColor *color.Color
-
 	switch {
 	case status >= 200 && status < 300:
-		statusColor = color.New(color.FgGreen)
+		fmt.Printf("%s[+]%s %s => %s%d OK%s\n", Green, Reset, url, Green, status, Reset)
 	case status >= 300 && status < 400:
-		statusColor = color.New(color.FgCyan)
+		fmt.Printf("%s[~]%s %s => %s%d Redirect%s\n", Cyan, Reset, url, Cyan, status, Reset)
 	case status >= 400 && status < 500:
-		statusColor = color.New(color.FgYellow)
+		fmt.Printf("%s[!]%s %s => %s%d Client Error%s\n", Yellow, Reset, url, Yellow, status, Reset)
 	case status >= 500:
-		statusColor = color.New(color.FgRed)
+		fmt.Printf("%s[✖]%s %s => %s%d Server Error%s\n", Red, Reset, url, Red, status, Reset)
 	default:
-		statusColor = color.New(color.FgWhite)
+		fmt.Printf("%s[?]%s %s => %s%d Unknown%s\n", Magenta, Reset, url, Magenta, status, Reset)
 	}
-
-	statusStr := strconv.Itoa(status)
-	statusColor.Printf("[ %s ] ", statusStr)
-	fmt.Println(url)
 }
