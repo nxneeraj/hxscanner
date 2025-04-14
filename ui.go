@@ -2,14 +2,22 @@ package ui
 
 import (
 	"fmt"
-	"time"
-	"os"
+	"github.com/fatih/color"
 )
 
-// showWelcomeBanner displays the banner with cool ASCII art and program name
-func showWelcomeBanner() {
-	clearScreen()
+var (
+	gray    = color.New(color.FgHiBlack).SprintFunc()
+	red     = color.New(color.FgHiRed).SprintFunc()
+	green   = color.New(color.FgHiGreen).SprintFunc()
+	yellow  = color.New(color.FgHiYellow).SprintFunc()
+	cyan    = color.New(color.FgHiCyan).SprintFunc()
+	blue    = color.New(color.FgHiBlue).SprintFunc()
+	magenta = color.New(color.FgHiMagenta).SprintFunc()
+	white   = color.New(color.FgHiWhite).SprintFunc()
+)
 
+// PrintBanner shows the startup banner
+func PrintBanner() {
 	banner := `
 ██╗  ██╗██╗  ██╗     ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗ 
 ██║  ██║╚██╗██╔╝     ██╔════╝██╔════╝██╔══██╗████╗  ██║████╗  ██║██╔════╝██╔══██╗
@@ -21,60 +29,43 @@ func showWelcomeBanner() {
         HyperScanner v1.1 🔥 - Ultra Fast HTTP Status Scanner by Neeraj Sah
         GitHub: https://github.com/nxneeraj/hxscanner
 --------------------------------------------------------------------------------
-
 `
-	fmt.Println(banner)
-	fmt.Println("Initializing HyperScanner... Please Wait...")
-	time.Sleep(2 * time.Second) // simulate the loading time
+	fmt.Println(cyan(banner))
 }
 
-// showLoadingAnimation displays a loading animation during the scanning process
-func showLoadingAnimation() {
-	fmt.Print("Loading: [")
-	for i := 0; i < 10; i++ {
-		fmt.Print("=")
-		time.Sleep(100 * time.Millisecond)
+// LogResult prints the scan result with colored status
+func LogResult(url string, code int) {
+	var status string
+
+	switch {
+	case code >= 100 && code < 200:
+		status = blue(fmt.Sprintf("[%d]", code))
+	case code >= 200 && code < 300:
+		status = green(fmt.Sprintf("[%d]", code))
+	case code >= 300 && code < 400:
+		status = yellow(fmt.Sprintf("[%d]", code))
+	case code >= 400 && code < 500:
+		status = red(fmt.Sprintf("[%d]", code))
+	case code >= 500:
+		status = magenta(fmt.Sprintf("[%d]", code))
+	default:
+		status = gray("[???]")
 	}
-	fmt.Println("] Done!")
+
+	fmt.Printf("➡️  %s -> %s\n", url, status)
 }
 
-// showScanStart displays a professional-looking start message before the scanning begins
-func showScanStart() {
-	clearScreen()
-	fmt.Println("\n\n-------------------------------------------------")
-	fmt.Println("HyperScanner v1.1")
-	fmt.Println("-------------------------------------------------")
-	fmt.Println("Scanning started... 🚀")
-	fmt.Println("-------------------------------------------------")
+// LogInfo prints general info messages
+func LogInfo(msg string) {
+	fmt.Println(white("[*] "), msg)
 }
 
-// showScanProgress shows progress with a real-time status update on the URL being scanned
-func showScanProgress(url string, statusCode int) {
-	// Customize status output to include URL and Status Code
-	fmt.Printf("Scanning URL: %-50s Status: %-4d\n", url, statusCode)
+// LogError prints errors
+func LogError(msg string) {
+	fmt.Println(red("[!] "), msg)
 }
 
-// showScanComplete shows a cool summary at the end of the scan
-func showScanComplete(totalURLs, successfulScans, failedScans int) {
-	fmt.Println("\n-------------------------------------------------")
-	fmt.Println("Scan Complete! 🎉")
-	fmt.Println("-------------------------------------------------")
-	fmt.Printf("Total URLs scanned: %d\n", totalURLs)
-	fmt.Printf("Successful scans: %d\n", successfulScans)
-	fmt.Printf("Failed scans: %d\n", failedScans)
-	fmt.Println("-------------------------------------------------")
-	fmt.Println("Thanks for using HyperScanner! 🔥")
-	fmt.Println("-------------------------------------------------\n")
+// LogSuccess prints success message
+func LogSuccess(msg string) {
+	fmt.Println(green("[✓] "), msg)
 }
-
-// clearScreen clears the console screen for a neat UI experience
-func clearScreen() {
-	if os.Getenv("OS") == "Windows_NT" {
-		// Windows
-		fmt.Print("\x0c")
-	} else {
-		// Unix-based systems
-		fmt.Print("\033[H\033[2J")
-	}
-}
-
