@@ -24,9 +24,8 @@ func init() {
 	flag.IntVar(&delay, "d", 0, "🕒 Delay between requests in milliseconds")
 	flag.StringVar(&userAgent, "ua", "HyperScanner/1.1", "🕵️ Custom User-Agent header")
 
-	// Automatically called before main()
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `
+		banner := `
 ██╗  ██╗██╗  ██╗     ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗ 
 ██║  ██║╚██╗██╔╝     ██╔════╝██╔════╝██╔══██╗████╗  ██║████╗  ██║██╔════╝██╔══██╗
 ███████║ ╚███╔╝█████╗███████╗██║     ███████║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝
@@ -35,15 +34,17 @@ func init() {
 ╚═╝  ╚═╝╚═╝  ╚═╝     ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
 
         HyperScanner v1.1 🔥 - Ultra Fast HTTP Status Scanner by Neeraj Sah
+        GitHub: https://github.com/nxneeraj/hxscanner
+--------------------------------------------------------------------------------
 
 USAGE:
     hxscanner -f urls.txt [options]
 
 OPTIONS:
-`)
+`
+		fmt.Fprintln(os.Stderr, banner)
 		flag.PrintDefaults()
 	}
 
-	// Small delay to ensure flag.Usage shows up cleanly
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond) // for aesthetic delay before usage output
 }
