@@ -3,64 +3,84 @@ package init
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
-	"github.com/nxneeraj/hxscanner/ui"
-	"github.com/nxneeraj/hxscanner/scanner"
 )
 
-// Init initializes the HyperScanner application by setting up the environment
-func Init() {
-	ui.showWelcomeBanner()
+var (
+	outputFolder     string
+	categorizedPaths map[string]string
+	allCodes         = []int{
+		100, 101, 102, 103,
+		200, 201, 202, 203, 204, 205, 206, 207, 208, 226,
+		300, 301, 302, 303, 304, 305, 306, 307, 308,
+		400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410,
+		411, 412, 413, 414, 415, 416, 417, 418, 421, 422,
+		423, 424, 425, 426, 428, 429, 431, 451,
+		500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511,
+	}
+)
 
-	// Simulate some setup time
-	time.Sleep(2 * time.Second)
+// SetupEnv creates output folder structure based on input file
+func SetupEnv() {
+	ts := time.Now().Format("2006-01-02_15-04-05")
+	outputFolder = "hx_output_" + ts
+	os.MkdirAll(outputFolder, 0755)
 
-	// Checking environment variables (like for proxy or custom configs)
-	checkEnvironment()
-
-	// You can initialize logging, other services here if needed in future
-
-	// Load configurations or settings (could be added)
-	fmt.Println("Configuration Loaded: HyperScanner is ready to scan.")
-
-	// Proceed to scanning (optional)
-	ui.showScanStart()
-}
-
-// checkEnvironment checks the environment for necessary conditions (e.g., proxy, config files)
-func checkEnvironment() {
-	// Check if any environment variables need to be loaded
-	proxy := os.Getenv("HTTP_PROXY")
-	if proxy != "" {
-		fmt.Printf("Using Proxy: %s\n", proxy)
+	categorizedPaths = map[string]string{
+		"1xx": filepath.Join(outputFolder, "1xx"),
+		"2xx": filepath.Join(outputFolder, "2xx"),
+		"3xx": filepath.Join(outputFolder, "3xx"),
+		"4xx": filepath.Join(outputFolder, "4xx"),
+		"5xx": filepath.Join(outputFolder, "5xx"),
 	}
 
-	// Add more checks if necessary (like config files or permissions)
-	fmt.Println("Environment check completed. All good!")
-}
-
-// StartScanning begins the scanning process
-func StartScanning(urls []string) {
-	ui.showScanStart()
-
-	// Initialize scan variables
-	totalURLs := len(urls)
-	successfulScans := 0
-	failedScans := 0
-
-	// Start the scanning process
-	for _, url := range urls {
-		// Call scanner logic for URL
-		statusCode := scanner.ScanURL(url) // This is a placeholder for actual scanning logic
-		ui.showScanProgress(url, statusCode)
-
-		if statusCode >= 200 && statusCode < 300 {
-			successfulScans++
-		} else {
-			failedScans++
-		}
+	// Create main folders
+	for _, folder := range categorizedPaths {
+		os.MkdirAll(folder, 0755)
 	}
 
-	// After scanning all URLs, show the results
-	ui.showScanComplete(totalURLs, successfulScans, failedScans)
+	// Create individual status code files
+	for _, code := range allCodes {
+		codeStr := strconv.Itoa(code)
+		codeDir := filepath.Join(outputFolder, string(codeStr[0])+"xx")
+		codeFile := filepath.Join(codeDir, codeStr+".txt")
+		os.WriteFile(codeFile, []byte{}, 0644)
+	}
+
+	// Create special logs
+	os.WriteFile(filepath.Join(outputFolder, "ip_exist.txt"), []byte{}, 0644)
+	os.WriteFile(filepath.Join(outputFolder, "ip_invalid.txt"), []byte{}, 0644)
+	os.WriteFile(filepath.Join(outputFolder, "log.txt"), []byte{}, 0644)
+}
+
+// StoreResult categorizes and writes the URL based on status code
+func StoreResult(url string, status int) {
+	statusStr := strconv.Itoa(status)
+	mainCat := string(statusStr[0]) + "xx"
+	categoryFolder := categorizedPaths[mainCat]
+
+	codeFile := filepath.Join(categoryFolder, statusStr+".txt")
+	appendLine(codeFile, url)
+
+	// Additional centralized logs
+	appendLine(filepath.Join(outputFolder, "log.txt"), fmt.Sprintf("%s -> %d", url, status))
+
+	if status == 0 || status > 599 {
+		appendLine(filepath.Join(outputFolder, "ip_invalid.txt"), url)
+	} else {
+		appendLine(filepath.Join(outputFolder, "ip_exist.txt"), url)
+	}
+}
+
+func appendLine(path string, line string) {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("❌ Failed to write to", path, ":", err)
+		return
+	}
+	defer f.Close()
+	_, _ = f.WriteString(strings.TrimSpace(line) + "\n")
 }
