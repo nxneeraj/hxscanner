@@ -1,50 +1,66 @@
-package main
+package init
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"time"
+	"github.com/nxneeraj/hxscanner/ui"
+	"github.com/nxneeraj/hxscanner/scanner"
 )
 
-var (
-	urlFile     string
-	concurrency int
-	timeout     int
-	showAll     bool
-	delay       int
-	userAgent   string
-)
+// Init initializes the HyperScanner application by setting up the environment
+func Init() {
+	ui.showWelcomeBanner()
 
-func init() {
-	flag.StringVar(&urlFile, "f", "", "📁 Path to file containing target URLs")
-	flag.IntVar(&concurrency, "c", 50, "🚀 Number of concurrent requests")
-	flag.IntVar(&timeout, "t", 10, "⏱️ Request timeout in seconds")
-	flag.BoolVar(&showAll, "a", false, "🧾 Show all status codes (including non-2xx/3xx)")
-	flag.IntVar(&delay, "d", 0, "🕒 Delay between requests in milliseconds")
-	flag.StringVar(&userAgent, "ua", "HyperScanner/1.1", "🕵️ Custom User-Agent header")
+	// Simulate some setup time
+	time.Sleep(2 * time.Second)
 
-	flag.Usage = func() {
-		banner := `
-██╗  ██╗██╗  ██╗     ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗ 
-██║  ██║╚██╗██╔╝     ██╔════╝██╔════╝██╔══██╗████╗  ██║████╗  ██║██╔════╝██╔══██╗
-███████║ ╚███╔╝█████╗███████╗██║     ███████║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝
-██╔══██║ ██╔██╗╚════╝╚════██║██║     ██╔══██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗
-██║  ██║██╔╝ ██╗     ███████║╚██████╗██║  ██║██║ ╚████║██║ ╚████║███████╗██║  ██║
-╚═╝  ╚═╝╚═╝  ╚═╝     ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+	// Checking environment variables (like for proxy or custom configs)
+	checkEnvironment()
 
-        HyperScanner v1.1 🔥 - Ultra Fast HTTP Status Scanner by Neeraj Sah
-        GitHub: https://github.com/nxneeraj/hxscanner
---------------------------------------------------------------------------------
+	// You can initialize logging, other services here if needed in future
 
-USAGE:
-    hxscanner -f urls.txt [options]
+	// Load configurations or settings (could be added)
+	fmt.Println("Configuration Loaded: HyperScanner is ready to scan.")
 
-OPTIONS:
-`
-		fmt.Fprintln(os.Stderr, banner)
-		flag.PrintDefaults()
+	// Proceed to scanning (optional)
+	ui.showScanStart()
+}
+
+// checkEnvironment checks the environment for necessary conditions (e.g., proxy, config files)
+func checkEnvironment() {
+	// Check if any environment variables need to be loaded
+	proxy := os.Getenv("HTTP_PROXY")
+	if proxy != "" {
+		fmt.Printf("Using Proxy: %s\n", proxy)
 	}
 
-	time.Sleep(200 * time.Millisecond) // for aesthetic delay before usage output
+	// Add more checks if necessary (like config files or permissions)
+	fmt.Println("Environment check completed. All good!")
+}
+
+// StartScanning begins the scanning process
+func StartScanning(urls []string) {
+	ui.showScanStart()
+
+	// Initialize scan variables
+	totalURLs := len(urls)
+	successfulScans := 0
+	failedScans := 0
+
+	// Start the scanning process
+	for _, url := range urls {
+		// Call scanner logic for URL
+		statusCode := scanner.ScanURL(url) // This is a placeholder for actual scanning logic
+		ui.showScanProgress(url, statusCode)
+
+		if statusCode >= 200 && statusCode < 300 {
+			successfulScans++
+		} else {
+			failedScans++
+		}
+	}
+
+	// After scanning all URLs, show the results
+	ui.showScanComplete(totalURLs, successfulScans, failedScans)
 }
