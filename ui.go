@@ -2,58 +2,79 @@ package ui
 
 import (
 	"fmt"
+	"time"
+	"os"
 )
 
-const (
-	Red     = "\033[31m"
-	Green   = "\033[32m"
-	Yellow  = "\033[33m"
-	Blue    = "\033[34m"
-	Cyan    = "\033[36m"
-	White   = "\033[97m"
-	Magenta = "\033[35m"
-	Reset   = "\033[0m"
-	Bold    = "\033[1m"
-)
+// showWelcomeBanner displays the banner with cool ASCII art and program name
+func showWelcomeBanner() {
+	clearScreen()
 
-func ShowBanner() {
 	banner := `
-██╗  ██╗██╗  ██╗     ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗
+██╗  ██╗██╗  ██╗     ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗ 
 ██║  ██║╚██╗██╔╝     ██╔════╝██╔════╝██╔══██╗████╗  ██║████╗  ██║██╔════╝██╔══██╗
 ███████║ ╚███╔╝█████╗███████╗██║     ███████║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝
 ██╔══██║ ██╔██╗╚════╝╚════██║██║     ██╔══██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗
 ██║  ██║██╔╝ ██╗     ███████║╚██████╗██║  ██║██║ ╚████║██║ ╚████║███████╗██║  ██║
 ╚═╝  ╚═╝╚═╝  ╚═╝     ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
 
-HyperScanner v1.1 🔥  -  Ultra Fast HTTP Status Scanner
+        HyperScanner v1.1 🔥 - Ultra Fast HTTP Status Scanner by Neeraj Sah
+        GitHub: https://github.com/nxneeraj/hxscanner
+--------------------------------------------------------------------------------
+
 `
-	fmt.Println(string(Cyan) + Bold + banner + Reset)
+	fmt.Println(banner)
+	fmt.Println("Initializing HyperScanner... Please Wait...")
+	time.Sleep(2 * time.Second) // simulate the loading time
 }
 
-func ShowHelp() {
-	fmt.Println(string(Yellow) + Bold + "\nUsage:")
-	fmt.Println(string(White) + "  hyperscanner -i input.txt -json results.json -csv results.csv -c 100 -r 2")
-	fmt.Println(string(Yellow) + Bold + "\nOptions:")
-	fmt.Println(string(Green) + "  -i, -f" + string(White) + "      Input file containing list of targets (IP or domain)")
-	fmt.Println(string(Green) + "  -json" + string(White) + "     Output file for JSON results (default: output.json)")
-	fmt.Println(string(Green) + "  -csv" + string(White) + "      Output file for CSV results (default: output.csv)")
-	fmt.Println(string(Green) + "  -c" + string(White) + "         Concurrency level (default: 100)")
-	fmt.Println(string(Green) + "  -r" + string(White) + "         Max retries per request (default: 1)")
-	fmt.Println(string(Green) + "  -h" + string(White) + "         Show help info")
-	fmt.Println(string(Reset))
+// showLoadingAnimation displays a loading animation during the scanning process
+func showLoadingAnimation() {
+	fmt.Print("Loading: [")
+	for i := 0; i < 10; i++ {
+		fmt.Print("=")
+		time.Sleep(100 * time.Millisecond)
+	}
+	fmt.Println("] Done!")
 }
 
-func PrintStatus(url string, status int) {
-	switch {
-	case status >= 200 && status < 300:
-		fmt.Printf("%s[+]%s %s => %s%d OK%s\n", Green, Reset, url, Green, status, Reset)
-	case status >= 300 && status < 400:
-		fmt.Printf("%s[~]%s %s => %s%d Redirect%s\n", Cyan, Reset, url, Cyan, status, Reset)
-	case status >= 400 && status < 500:
-		fmt.Printf("%s[!]%s %s => %s%d Client Error%s\n", Yellow, Reset, url, Yellow, status, Reset)
-	case status >= 500:
-		fmt.Printf("%s[✖]%s %s => %s%d Server Error%s\n", Red, Reset, url, Red, status, Reset)
-	default:
-		fmt.Printf("%s[?]%s %s => %s%d Unknown%s\n", Magenta, Reset, url, Magenta, status, Reset)
+// showScanStart displays a professional-looking start message before the scanning begins
+func showScanStart() {
+	clearScreen()
+	fmt.Println("\n\n-------------------------------------------------")
+	fmt.Println("HyperScanner v1.1")
+	fmt.Println("-------------------------------------------------")
+	fmt.Println("Scanning started... 🚀")
+	fmt.Println("-------------------------------------------------")
+}
+
+// showScanProgress shows progress with a real-time status update on the URL being scanned
+func showScanProgress(url string, statusCode int) {
+	// Customize status output to include URL and Status Code
+	fmt.Printf("Scanning URL: %-50s Status: %-4d\n", url, statusCode)
+}
+
+// showScanComplete shows a cool summary at the end of the scan
+func showScanComplete(totalURLs, successfulScans, failedScans int) {
+	fmt.Println("\n-------------------------------------------------")
+	fmt.Println("Scan Complete! 🎉")
+	fmt.Println("-------------------------------------------------")
+	fmt.Printf("Total URLs scanned: %d\n", totalURLs)
+	fmt.Printf("Successful scans: %d\n", successfulScans)
+	fmt.Printf("Failed scans: %d\n", failedScans)
+	fmt.Println("-------------------------------------------------")
+	fmt.Println("Thanks for using HyperScanner! 🔥")
+	fmt.Println("-------------------------------------------------\n")
+}
+
+// clearScreen clears the console screen for a neat UI experience
+func clearScreen() {
+	if os.Getenv("OS") == "Windows_NT" {
+		// Windows
+		fmt.Print("\x0c")
+	} else {
+		// Unix-based systems
+		fmt.Print("\033[H\033[2J")
 	}
 }
+
