@@ -2,167 +2,116 @@ package main
 
 import (
 	"bufio"
-	"encoding/csv"
-	"encoding/json"
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
-	"github.com/nxneeraj/hxscanner/installer"
-	"github.com/nxneeraj/hxscanner/ui"
-	"github.com/nxneeraj/hxscanner/init"
-)
 
-// Result holds individual scan results
-type Result struct {
-	URL    string `json:"url"`
-	Status int    `json:"status"`
-}
+	"hxscanner/ui"
+	"hxscanner/installer"
+)
 
 var (
-	inputFile     string
-	outputJSON    string
-	outputCSV     string
-	concurrency   int
-	maxRetries    int
-	showHelp      bool
-	runSetup      bool
-
-	results     []Result
-	resultMutex sync.Mutex
-	wg          sync.WaitGroup
-	sem         chan struct{}
+	outputBase = ""
+	client     = &http.Client{Timeout: 5 * time.Second}
 )
 
-func init() {
-	flag.StringVar(&inputFile, "i", "", "Input file with IPs or URLs")
-	flag.StringVar(&inputFile, "f", "", "Alias for -i (input file)")
-	flag.StringVar(&outputJSON, "json", "output.json", "Save results to JSON file")
-	flag.StringVar(&outputCSV, "csv", "output.csv", "Save results to CSV file")
-	flag.IntVar(&concurrency, "c", 100, "Number of concurrent scans")
-	flag.IntVar(&maxRetries, "r", 1, "Number of retries for failed URLs")
-	flag.BoolVar(&showHelp, "h", false, "Show help and usage")
-	flag.BoolVar(&runSetup, "setup", false, "Run installer to make hxscanner global")
-}
-
 func main() {
-	flag.Parse()
+	ui.PrintBanner()
 
-	if runSetup {
-		RunInstaller() // Run global installation (installer.go)
-		return
+	if len(os.Args) < 2 {
+		ui.LogError("Usage: hxscanner <input-file>")
+		os.Exit(1)
 	}
 
-	if showHelp || inputFile == "" {
-		ShowBanner()
-		ShowHelp()
-		return
-	}
+	inputFile := os.Args[1]
+	outputBase = strings.TrimSuffix(inputFile, ".txt") + "_output"
+	os.MkdirAll(outputBase, 0755)
 
-	ShowBanner()
-	SetupEnv() // Create folders, output structure
-
-	urls, err := readInput(inputFile)
+	urls, err := readLines(inputFile)
 	if err != nil {
-		fmt.Println("❌ Error reading input file:", err)
-		return
+		ui.LogError("Failed to read input file")
+		os.Exit(1)
 	}
 
-	sem = make(chan struct{}, concurrency)
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 50)
 
-	start := time.Now()
 	for _, url := range urls {
+		url := normalize(url)
+
+		if url == "" {
+			appendToFile("log.txt", "Empty or invalid line\n")
+			continue
+		}
+
 		wg.Add(1)
-		go scanURL(url)
+		go func(link string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			scanURL(link)
+			<-sem
+		}(url)
 	}
+
 	wg.Wait()
-	elapsed := time.Since(start)
-
-	saveJSON(outputJSON)
-	saveCSV(outputCSV)
-
-	fmt.Printf("\n✅ Scan completed in %s\n", elapsed)
+	ui.LogSuccess("Scanning complete.")
+	installer.CheckAndSetup()
 }
 
-func readInput(filename string) ([]string, error) {
-	file, err := os.Open(filename)
+func scanURL(url string) {
+	resp, err := client.Get(url)
+	if err != nil {
+		ui.LogError(fmt.Sprintf("Invalid: %s", url))
+		appendToFile("ip_invalid.txt", url)
+		return
+	}
+	defer resp.Body.Close()
+
+	code := resp.StatusCode
+	ui.LogResult(url, code)
+	appendToFile("ip_exist.txt", url)
+
+	codeStr := fmt.Sprintf("%d", code)
+	writeToCategoryFolder(codeStr, url)
+}
+
+func normalize(line string) string {
+	line = strings.TrimSpace(line)
+	if strings.HasPrefix(line, "http") {
+		return line
+	}
+	if strings.Contains(line, ".") {
+		return "http://" + line
+	}
+	return ""
+}
+
+func writeToCategoryFolder(code string, url string) {
+	folder := outputBase + "/" + code[:1] + "xx"
+	os.MkdirAll(folder, 0755)
+	appendToFile(fmt.Sprintf("%s/%s.txt", folder, code), url)
+}
+
+func appendToFile(filename, line string) {
+	f, _ := os.OpenFile(outputBase+"/"+filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	defer f.Close()
+	f.WriteString(line + "\n")
+}
+
+func readLines(path string) ([]string, error) {
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	var urls []string
+	var lines []string
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line != "" {
-			if !strings.HasPrefix(line, "http") {
-				line = "http://" + line
-			}
-			urls = append(urls, line)
-		}
+		lines = append(lines, scanner.Text())
 	}
-	return urls, scanner.Err()
-}
-
-func scanURL(url string) {
-	defer wg.Done()
-	sem <- struct{}{}
-	defer func() { <-sem }()
-
-	var resp *http.Response
-	var err error
-
-	for i := 0; i <= maxRetries; i++ {
-		resp, err = http.Get(url)
-		if err == nil && resp != nil {
-			defer resp.Body.Close()
-			break
-		}
-		time.Sleep(300 * time.Millisecond)
-	}
-
-	status := 0
-	if resp != nil {
-		status = resp.StatusCode
-	}
-
-	PrintStatus(url, status)
-	StoreResult(url, status) // Categorize + log file (init.go)
-
-	resultMutex.Lock()
-	results = append(results, Result{URL: url, Status: status})
-	resultMutex.Unlock()
-}
-
-func saveJSON(filename string) {
-	data, err := json.MarshalIndent(results, "", "  ")
-	if err != nil {
-		fmt.Println("❌ Failed to save JSON:", err)
-		return
-	}
-	err = os.WriteFile(filename, data, 0644)
-	if err != nil {
-		fmt.Println("❌ Error writing JSON file:", err)
-	}
-}
-
-func saveCSV(filename string) {
-	file, err := os.Create(filename)
-	if err != nil {
-		fmt.Println("❌ Failed to save CSV:", err)
-		return
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	writer.Write([]string{"URL", "Status"})
-	for _, r := range results {
-		writer.Write([]string{r.URL, fmt.Sprintf("%d", r.Status)})
-	}
+	return lines, scanner.Err()
 }
