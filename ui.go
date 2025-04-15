@@ -2,13 +2,11 @@ package ui
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/fatih/color"
 )
 
-// PrintBanner displays the ASCII logo and version.
-func PrintBanner() {
+// DisplayBanner displays a simple ASCII banner for hxscanner.
+func DisplayBanner() {
 	banner := `
 ██╗  ██╗██╗  ██╗     ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗ 
 ██║  ██║╚██╗██╔╝     ██╔════╝██╔════╝██╔══██╗████╗  ██║████╗  ██║██╔════╝██╔══██╗
@@ -17,46 +15,42 @@ func PrintBanner() {
 ██║  ██║██╔╝ ██╗     ███████║╚██████╗██║  ██║██║ ╚████║██║ ╚████║███████╗██║  ██║
 ╚═╝  ╚═╝╚═╝  ╚═╝     ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
 
-	`
+        HyperScanner v1.1 🔥 - Ultra Fast HTTP Status Scanner by Neeraj Sah
+        GitHub: https://github.com/nxneeraj/hxscanner
+--------------------------------------------------------------------------------
+`
 	color.Cyan(banner)
-	color.Green("HyperScanner v1.1")
-	color.Yellow("Made by @nxneeraj ⚡")
-	color.Blue("Start Time: %s\n", time.Now().Format("2006-01-02 15:04:05"))
-	fmt.Println()
+	fmt.Println("Welcome to hxscanner! The HTTP Status Code Scanner")
+	fmt.Println("---------------------------------------------------")
 }
 
-// PrintHelp displays help info.
-func PrintHelp() {
-	fmt.Println("Usage:")
-	color.Green("  -i <file>\tSpecify IP/URL list file")
-	color.Green("  -f <file>\tAlias for -i")
-	color.Green("  -o <format>\tOutput format: json / csv / txt")
-	color.Green("  -h\t\tShow help")
-	color.Green("  --version\tShow version")
+// DisplayScanningProgress shows the current status of the scan.
+func DisplayScanningProgress(ip string, statusCode string) {
+	color.Yellow("Scanning IP/URL: %s - Status Code: %s", ip, statusCode)
 }
 
-// PrintStatus prints colored output for status codes.
-func PrintStatus(code int, url string) {
-	switch {
-	case code >= 200 && code < 300:
-		color.Green("[ %d ] %s", code, url)
-	case code >= 300 && code < 400:
-		color.Yellow("[ %d ] %s", code, url)
-	case code >= 400 && code < 500:
-		color.Red("[ %d ] %s", code, url)
-	case code >= 500:
-		color.HiRed("[ %d ] %s", code, url)
-	default:
-		color.White("[ %d ] %s", code, url)
-	}
+// DisplayScanCompletion shows a message when the scan is completed.
+func DisplayScanCompletion(outputDir string) {
+	color.Green("Scan completed successfully. Results are saved in: %s", outputDir)
 }
 
-// PrintRetryInfo shows retry attempt info.
-func PrintRetryInfo(url string, attempt int) {
-	color.Yellow("Retrying %s (Attempt %d)", url, attempt)
+// DisplayError shows an error message in red.
+func DisplayError(errMsg string) {
+	color.Red("Error: %s", errMsg)
 }
 
-// PrintError displays an error message.
-func PrintError(msg string) {
-	color.Red("Error: %s", msg)
+// DisplayHelp displays basic help instructions for the tool.
+func DisplayHelp() {
+	helpText := `
+Usage:
+  hxscanner <input_file> <output_directory>
+
+Options:
+  <input_file>      Path to the file containing a list of IPs or URLs to scan.
+  <output_directory> Directory where the output (categorized status codes) will be saved.
+
+Examples:
+  hxscanner ips.txt output_folder
+`
+	color.Cyan(helpText)
 }
