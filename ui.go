@@ -2,21 +2,12 @@ package ui
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/fatih/color"
 )
 
-var (
-	gray    = color.New(color.FgHiBlack).SprintFunc()
-	red     = color.New(color.FgHiRed).SprintFunc()
-	green   = color.New(color.FgHiGreen).SprintFunc()
-	yellow  = color.New(color.FgHiYellow).SprintFunc()
-	cyan    = color.New(color.FgHiCyan).SprintFunc()
-	blue    = color.New(color.FgHiBlue).SprintFunc()
-	magenta = color.New(color.FgHiMagenta).SprintFunc()
-	white   = color.New(color.FgHiWhite).SprintFunc()
-)
-
+// PrintBanner displays the ASCII logo and version.
 func PrintBanner() {
 	banner := `
 ██╗  ██╗██╗  ██╗     ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗ 
@@ -26,42 +17,46 @@ func PrintBanner() {
 ██║  ██║██╔╝ ██╗     ███████║╚██████╗██║  ██║██║ ╚████║██║ ╚████║███████╗██║  ██║
 ╚═╝  ╚═╝╚═╝  ╚═╝     ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
 
-        HyperScanner v1.1 🔥 - Ultra Fast HTTP Status Scanner by Neeraj Sah
-        GitHub: https://github.com/nxneeraj/hxscanner
---------------------------------------------------------------------------------
-`
-	fmt.Println(cyan(banner))
+	`
+	color.Cyan(banner)
+	color.Green("HyperScanner v1.1")
+	color.Yellow("Made by @nxneeraj ⚡")
+	color.Blue("Start Time: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+	fmt.Println()
 }
 
-func LogResult(url string, code int) {
-	var status string
+// PrintHelp displays help info.
+func PrintHelp() {
+	fmt.Println("Usage:")
+	color.Green("  -i <file>\tSpecify IP/URL list file")
+	color.Green("  -f <file>\tAlias for -i")
+	color.Green("  -o <format>\tOutput format: json / csv / txt")
+	color.Green("  -h\t\tShow help")
+	color.Green("  --version\tShow version")
+}
 
+// PrintStatus prints colored output for status codes.
+func PrintStatus(code int, url string) {
 	switch {
-	case code >= 100 && code < 200:
-		status = blue(fmt.Sprintf("[%d]", code))
 	case code >= 200 && code < 300:
-		status = green(fmt.Sprintf("[%d]", code))
+		color.Green("[ %d ] %s", code, url)
 	case code >= 300 && code < 400:
-		status = yellow(fmt.Sprintf("[%d]", code))
+		color.Yellow("[ %d ] %s", code, url)
 	case code >= 400 && code < 500:
-		status = red(fmt.Sprintf("[%d]", code))
+		color.Red("[ %d ] %s", code, url)
 	case code >= 500:
-		status = magenta(fmt.Sprintf("[%d]", code))
+		color.HiRed("[ %d ] %s", code, url)
 	default:
-		status = gray("[???]")
+		color.White("[ %d ] %s", code, url)
 	}
-
-	fmt.Printf("➡️  %s -> %s\n", url, status)
 }
 
-func LogInfo(msg string) {
-	fmt.Println(white("[*] "), msg)
+// PrintRetryInfo shows retry attempt info.
+func PrintRetryInfo(url string, attempt int) {
+	color.Yellow("Retrying %s (Attempt %d)", url, attempt)
 }
 
-func LogError(msg string) {
-	fmt.Println(red("[!] "), msg)
-}
-
-func LogSuccess(msg string) {
-	fmt.Println(green("[✓] "), msg)
+// PrintError displays an error message.
+func PrintError(msg string) {
+	color.Red("Error: %s", msg)
 }
