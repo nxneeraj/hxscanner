@@ -1,4 +1,4 @@
-# ⚡ HyperScanner (hxscanner) v1.4
+# ⚡ HyperScanner + CORS (hxscanner) v1.4+
 
 **HyperScanner** is a powerful and futuristic HTTP status code scanner that takes a list of IPs and classifies their responses into structured folders and files. Designed with speed, clarity, and beauty, HyperScanner simplifies the process of analyzing HTTP responses.
 
