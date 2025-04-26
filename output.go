@@ -2,69 +2,75 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"os" // Ensure os package is imported
 	"path/filepath"
+	"sync"
 )
 
 // Constants for output file names
 const (
-	logFileName     = "log.txt"
-	existFileName   = "ip_exist.txt"   // Contains targets that responded successfully at least once
-	invalidFileName = "ip_invalid.txt" // Contains targets that failed the *initial* scan
+	logFileName            = "log.txt"
+	existFileName          = "ip_exist.txt"
+	invalidFileName        = "ip_invalid.txt"
+	corsVulnerableFileName = "cors_vulnerable.txt"
+	unknownStatusFileName  = "unknown_status.txt"
 )
 
-// appendToFile appends a line to a file safely
+// Mutex to protect file writing operations across goroutines
+var fileWriteMutex sync.Mutex
+
+// appendToFile appends a line to a file safely using a mutex
 func appendToFile(path, line string) {
-	// Use O_APPEND|O_CREATE|O_WRONLY for safe concurrent appends
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	fileWriteMutex.Lock()
+	defer fileWriteMutex.Unlock()
+
+	// Use O_APPEND|O_CREATE|O_WRONLY with os prefix
+	// Corrected line: Use os.O_APPEND, os.O_CREATE, os.O_WRONLY
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) // <-- Fixed: Added os. prefix
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\n%sAppend Error (%s): %v%s\n", ColorError, path, err, ColorReset)
+		fmt.Fprintf(os.Stderr, "\n%sAppend Error (%s): %v%s\n", ColorError, filepath.Base(path), err, ColorReset)
 		return
 	}
 	defer f.Close()
-	// WriteString is generally safe for concurrent appends when file is opened with O_APPEND
+
 	if _, err := f.WriteString(line + "\n"); err != nil {
-		fmt.Fprintf(os.Stderr, "\n%sWrite Error (%s): %v%s\n", ColorError, path, err, ColorReset)
+		fmt.Fprintf(os.Stderr, "\n%sWrite Error (%s): %v%s\n", ColorError, filepath.Base(path), err, ColorReset)
 	}
 }
 
-// createOutputStructure prepares the output directory and files
+// createOutputStructure prepares the output directory and ensures all required files exist
 func createOutputStructure(base string) error {
 	err := os.MkdirAll(base, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("failed to create base output directory %s: %w", base, err)
 	}
 
-	// Pre-create category directories and status files
-	for code := range statusCodes { // Assumes statusCodes map is populated globally
-		categoryDigit := code / 100
-		categoryName, catOk := statusCategories[categoryDigit] // Assumes statusCategories is populated globally
-		if !catOk {
-			continue
-		}
+	// Pre-create category directories based on statusCategories map
+	for _, categoryName := range statusCategories {
 		dir := filepath.Join(base, categoryName)
 		err = os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%sWarning: failed to create category directory %s: %v%s\n", ColorWarning, dir, err, ColorReset)
-			continue
-		}
-		filePath := filepath.Join(dir, fmt.Sprintf("%d.txt", code))
-		f, err := os.Create(filePath) // Creates or truncates
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%sWarning: failed to create status file %s: %v%s\n", ColorWarning, filePath, err, ColorReset)
-		}
-		if f != nil {
-			f.Close()
 		}
 	}
+	// Also create directory for unknown categories if needed
+	unknownCatDir := filepath.Join(base, "unknown_category")
+	os.MkdirAll(unknownCatDir, os.ModePerm)
 
 	// Pre-create auxiliary files using constants
-	extras := []string{existFileName, invalidFileName, logFileName}
+	extras := []string{
+		existFileName,
+		invalidFileName,
+		logFileName,
+		corsVulnerableFileName,
+		unknownStatusFileName,
+	}
 	for _, name := range extras {
 		filePath := filepath.Join(base, name)
-		f, err := os.Create(filePath) // Creates or truncates
+		// Create file if it doesn't exist, truncate if it does
+		f, err := os.Create(filePath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%sWarning: failed to create extra file %s: %v%s\n", ColorWarning, filePath, err, ColorReset)
+			fmt.Fprintf(os.Stderr, "%sWarning: failed to create/truncate auxiliary file %s: %v%s\n", ColorWarning, filePath, err, ColorReset)
 		}
 		if f != nil {
 			f.Close()
