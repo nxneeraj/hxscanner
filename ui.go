@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -11,51 +10,9 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-// Terminal color codes
-const (
-	ColorReset   = "\033[0m"
-	ColorAccent  = "\033[36m"
-	ColorError   = "\033[31m"
-	ColorSuccess = "\033[32m"
-	ColorInfo    = "\033[34m"
-	ColorBanner  = "\033[35m"
-)
+// Constants and global maps are now expected to be in globals.go
 
-// Emoji for each HTTP status code class
-var statusEmojis = map[int]string{
-	1: "🟦",
-	2: "🟩",
-	3: "🟨",
-	4: "🟥",
-	5: "🟥",
-}
-
-// Color associated with each specific status code
-var statusColors = map[int]string{
-	200: ColorSuccess,
-	201: ColorSuccess,
-	301: ColorAccent,
-	302: ColorAccent,
-	400: ColorError,
-	401: ColorError,
-	403: ColorError,
-	404: ColorError,
-	500: ColorError,
-}
-
-// Short descriptions for common HTTP status codes
-var statusCodes = map[int]string{
-	200: "OK",
-	201: "Created",
-	301: "Moved Permanently",
-	302: "Found",
-	400: "Bad Request",
-	401: "Unauthorized",
-	403: "Forbidden",
-	404: "Not Found",
-	500: "Internal Server Error",
-}
-
+// printBanner displays the tool's banner
 func printBanner() {
 	fmt.Println(ColorBanner)
 	fmt.Println(`
@@ -66,13 +23,13 @@ func printBanner() {
 ██║  ██║██╔╝ ██╗      ███████║╚██████╗██║  ██║██║ ╚████║██║ ╚████║███████╗██║  ██║
 ╚═╝  ╚═╝╚═╝  ╚═╝      ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
 	`)
-	fmt.Println(ColorAccent + "         HyperScanner v1.4 (IP/Domain/URL Scanner w/ Rescan)" + ColorReset)
+	fmt.Println(ColorAccent + "         HyperScanner v1.4+CORS (IP/Domain/URL Scanner)" + ColorReset)
 	fmt.Println()
 }
 
-// colorPrint displays a single scan result, respecting quiet mode and indicating rescans
+// colorPrint displays a single primary scan result (status or error).
 func colorPrint(target string, code int, desc string, err error, quiet bool, isRescan bool) {
-	if quiet {
+	if quiet && err == nil {
 		return
 	}
 
@@ -82,46 +39,65 @@ func colorPrint(target string, code int, desc string, err error, quiet bool, isR
 	}
 
 	if err != nil {
-		fmt.Printf("%s%s[x]%s %s -> %sERROR: %v%s\n", rescanPrefix, ColorError, ColorReset, target, ColorError, err, ColorReset)
+		fmt.Printf("%s%s[X]%s %s -> %sERROR: %v%s\n", rescanPrefix, ColorError, ColorReset, target, ColorError, err, ColorReset)
 		return
 	}
 
 	category := code / 100
-	if category < 1 || category > 5 {
-		if code != 0 {
-			fmt.Printf("%s[?] %s -> %d %s\n", rescanPrefix, target, code, desc)
-		}
-		return
+	emoji := statusEmojis[category]
+	if emoji == "" {
+		emoji = "❓"
 	}
 
-	emoji := statusEmojis[category]
 	color, ok := statusColors[code]
 	if !ok {
-		color = ColorReset
+		switch category {
+		case 1:
+			color = ColorInfo
+		case 2:
+			color = ColorSuccess
+		case 3:
+			color = ColorWarning
+		case 4:
+			color = ColorError
+		case 5:
+			color = ColorError
+		default:
+			color = ColorReset
+		}
 	}
 
-	successMark := "✓"
+	successMark := "[✓]"
 	if isRescan {
-		successMark = "✓✓"
+		successMark = "[✓✓]"
 	}
 
-	fmt.Printf("%s%s%s%s %s -> %s%d%s %s%s%s\n",
-		rescanPrefix, ColorSuccess, successMark, ColorReset,
-		target, color, code, ColorReset,
-		emoji, desc, ColorReset)
+	fmt.Printf("%s%s%s%s %s -> %s%d%s %s %s%s\n",
+		rescanPrefix,
+		ColorSuccess, successMark, ColorReset,
+		target,
+		color, code, ColorReset,
+		emoji,
+		desc,
+		ColorReset)
 }
 
-// createProgressBar initializes a new progress bar
+// createProgressBar initializes a new progress bar using settings from globals.go
 func createProgressBar(total int, description string) *progressbar.ProgressBar {
+	if total <= 0 {
+		total = 1
+	}
 	return progressbar.NewOptions(total,
 		progressbar.OptionSetDescription(description),
 		progressbar.OptionSetWriter(os.Stderr),
 		progressbar.OptionShowCount(),
+		// progressbar.OptionShowElapsedTime(true), // <-- Removed/Commented out this line
 		progressbar.OptionSetPredictTime(true),
 		progressbar.OptionFullWidth(),
+		progressbar.OptionEnableColorCodes(true),
 		progressbar.OptionSetTheme(progressbar.Theme{
-			Saucer:        fmt.Sprintf("%s=%s", ColorSuccess, ColorReset),
-			SaucerHead:    fmt.Sprintf("%s>%s", ColorSuccess, ColorReset),
+			Saucer:        fmt.Sprintf("%s█%s", ColorSuccess, ColorReset),
+			SaucerHead:    fmt.Sprintf("%s>%s", ColorAccent, ColorReset),
 			SaucerPadding: " ",
 			BarStart:      "[",
 			BarEnd:        "]",
@@ -129,7 +105,7 @@ func createProgressBar(total int, description string) *progressbar.ProgressBar {
 	)
 }
 
-// printSummary displays the scan summary table
+// printSummary displays the scan summary table using final counts
 func printSummary(
 	title string,
 	startTime time.Time,
@@ -140,49 +116,20 @@ func printSummary(
 	statusCountsMutex *sync.Mutex,
 	outputDir string,
 ) {
+	finalSuccess := atomic.LoadInt64(successfulScans)
+	finalFailed := atomic.LoadInt64(failedScans)
+
 	fmt.Printf("\n--- %s Summary (%s) ---\n", title, time.Since(startTime).Round(time.Millisecond))
 	fmt.Printf("Total Targets: %d\n", totalTargets)
-	fmt.Printf("%sSuccessful: %d%s\n", ColorSuccess, atomic.LoadInt64(successfulScans), ColorReset)
-	fmt.Printf("%sFailed: %d%s\n", ColorError, atomic.LoadInt64(failedScans), ColorReset)
+	fmt.Printf("%sSuccessful Scans: %d%s\n", ColorSuccess, finalSuccess, ColorReset)
+	fmt.Printf("%sFailed Scans:     %d%s\n", ColorError, finalFailed, ColorReset)
 
-	if atomic.LoadInt64(successfulScans) > 0 {
-		statusCountsMutex.Lock()
-		mapLen := len(statusCounts)
-		if mapLen > 0 {
-			fmt.Println("\nStatus Code Breakdown:")
-			codes := make([]int, 0, mapLen)
-			for code := range statusCounts {
-				codes = append(codes, code)
-			}
-			statusCountsMutex.Unlock()
-			sort.Ints(codes)
-
-			for _, code := range codes {
-				category := code / 100
-				if category < 1 || category > 5 {
-					continue
-				}
-
-				color, ok := statusColors[code]
-				if !ok {
-					color = ColorReset
-				}
-
-				emoji := statusEmojis[category]
-				desc, _ := statusCodes[code]
-
-				statusCountsMutex.Lock()
-				count := statusCounts[code]
-				statusCountsMutex.Unlock()
-
-				fmt.Printf("  %s%d%s %s%-25s : %d\n", color, code, ColorReset, emoji, desc, count)
-			}
-		} else {
-			statusCountsMutex.Unlock()
-		}
+	if finalSuccess > 0 {
+		// Use the helper function from main.go
+		printStatusBreakdown(statusCounts, statusCountsMutex)
 	}
 
-	// Optional completion message
-	// fmt.Printf("\n%s[*]%s Output saved to: %s%s%s\n", ColorInfo, ColorReset, ColorAccent, outputDir, ColorReset)
-	// fmt.Printf("%s[*]%s Scan complete.%s\n", ColorInfo, ColorReset, ColorReset)
+	fmt.Printf("\n%s[*]%s Output saved to: %s%s%s\n", ColorInfo, ColorReset, ColorAccent, outputDir, ColorReset)
 }
+
+// Note: printStatusBreakdown function is now in main.go
