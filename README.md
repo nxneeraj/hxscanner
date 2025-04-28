@@ -1,122 +1,173 @@
 # ⚡ HyperScanner + CORS (hxscanner) v1.4+
 
-**HyperScanner** is a powerful and futuristic HTTP status code scanner that takes a list of IPs and classifies their responses into structured folders and files. Designed with speed, clarity, and beauty, HyperScanner simplifies the process of analyzing HTTP responses.
+<p align="center">
+  <img src="https://img.shields.io/badge/HyperScanner-purple?style=for-the-badge&logoColor=white" alt="HyperScanner" />
+</p>
+
+<p align="center">
+  
+  <pre style="color: purple;">
+                        ██╗  ██╗██╗  ██╗      ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗
+                        ██║  ██║╚██╗██╔╝      ██╔════╝██╔════╝██╔══██╗████╗  ██║████╗  ██║██╔════╝██╔══██╗
+                        ███████║ ╚███╔╝█████╗ ███████╗██║     ███████║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝
+                        ██╔══██║ ██╔██╗╚════╝ ╚════██║██║     ██╔══██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗
+                        ██║  ██║██╔╝ ██╗      ███████║╚██████╗██║  ██║██║ ╚████║██║ ╚████║███████╗██║  ██║
+                        ╚═╝  ╚═╝╚═╝  ╚═╝      ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+  </pre>
+
+  <h3 align="center">HyperScanner v1.4+CORS (IP/Domain/URL Scanner)</h3>
+
+</p>
+
+---
+
+**HyperScanner** is a powerful and futuristic HTTP status code scanner that takes a list of IPs or URLs and classifies their responses into structured folders and files.  
+Designed for **speed**, **clarity**, and **beauty**, HyperScanner simplifies HTTP response analysis with an organized and efficient workflow.
 
 ---
 
 ## ✨ Features
 
-- 🔍 **Scan IP & URLs Lists**: Quickly scans any list of IPs and fetches their HTTP status codes.
-- 🗂️ **Organized Output**: Automatically creates folder structures based on HTTP status codes (e.g., `1xx`, `2xx`, `3xx`, `4xx`, `5xx`).
-- 📁 **File-Based Response Storage**: Saves each IP's response into corresponding status code files, such as `200.txt` for HTTP 200 responses.
-- ✅ **Detailed Logs**: Tracks results in clean and structured log files:
-  - `ip_exist.txt`: List of valid IPs.
-  - `ip_invalid.txt`: List of invalid IPs.
-  - `log.txt`: Comprehensive log of the scan.
-- 🎨 **Enhanced CLI**: Provides color-coded terminal outputs for improved readability (coming soon: icons and categories).
-- 💻 **Cross-Platform**: Compatible with Windows, Linux, and Mac.
+- 🔍 **Scan IP & URLs Lists:** Quickly scans any list of IPs or URLs and fetches their HTTP status codes.
+- 🗂️ **Organized Output:** Automatically creates folder structures based on HTTP status codes (1xx, 2xx, 3xx, 4xx, 5xx).
+- 📁 **File-Based Response Storage:** Saves each response into categorized files, such as `200.txt` for HTTP 200 OK responses.
+- ✅ **Detailed Logs:** Cleanly tracks results:
+  - `ip_exist.txt`: List of valid and reachable IPs/URLs.
+  - `ip_invalid.txt`: List of invalid or unreachable IPs/URLs.
+  - `log.txt`: Comprehensive full scanning log.
+- 🎨 **Enhanced CLI (Terminal Output):** Color-coded status codes for better readability (upcoming: icons + detailed categories).
+- 🌐 **CORS Integration (New!):** Detects and logs CORS headers like `Access-Control-Allow-Origin`.
+- 💻 **Cross-Platform:** Works flawlessly on **Windows**, **Linux**, and **macOS**.
 
 ---
 
 ## 🚀 Installation
 
-Ensure you have **Go 1.19+** installed on your system. Then, install HyperScanner using:
+Make sure you have **Go 1.19+** installed.
+
+Then install HyperScanner using:
 
 ```bash
-go install github.com/nxneeraj/hxscanner@latest
+go install github.com/hx-corp/hxscanner@latest
 ```
 
 ---
 
 ## 🛠️ Usage
 
-1. Prepare a text file containing a list of IPs, one IP per line (e.g., `ips.txt`).
-2. Run the scanner with the following command:
+Prepare a text file (`ips.txt`) containing a list of IPs or URLs, one per line.
+
+Run HyperScanner with:
 
 ```bash
 hxscanner -i ips.txt
 ```
 
-3. Results will be saved into structured folders and files based on HTTP status codes.
+You can also specify an output directory:
 
-### CLI Options
+```bash
+hxscanner -i ips.txt -o my_results
+```
 
-- `-i <file>`: Specify the input file containing the list of IPs.
-- `-o <directory>`: (Optional) Specify the output directory for results. Default is the current directory.
-- `--help`: Displays help information.
+---
+
+## 📋 CLI Options
+
+| Option        | Description                                           |
+|---------------|-------------------------------------------------------|
+| `-i <file>`   | **Required.** Path to the input file (IPs or URLs).    |
+| `-o <dir>`    | **Optional.** Output directory (default: current folder). |
+| `--help` `-h`     | Show help and usage instructions.                     |
 
 ---
 
 ## 📂 Output Structure
 
-After running HyperScanner, the output will be structured as follows:
+HyperScanner organizes the output beautifully:
 
-```
+```plaintext
 output/
 ├── 1xx/
+│   └── 100.txt
 ├── 2xx/
 │   ├── 200.txt
-│   ├── ...
+│   ├── 204.txt
+│   └── ...
 ├── 3xx/
+│   └── 301.txt
 ├── 4xx/
+│   └── 404.txt
 ├── 5xx/
+│   └── 500.txt
 ├── ip_exist.txt
 ├── ip_invalid.txt
-└── log.txt
+├── log.txt
+└── cors_detected.txt   (new in v1.4+)
 ```
 
-- **`<status_code>.txt`**: Contains the list of IPs that returned the corresponding HTTP status code.
-- **`ip_exist.txt`**: List of successfully scanned IPs.
-- **`ip_invalid.txt`**: List of invalid or unreachable IPs.
-- **`log.txt`**: Detailed log of the scanning process.
+- `<status_code>.txt`: IPs/URLs returning that status code.
+- `ip_exist.txt`: Valid, reachable IPs/URLs.
+- `ip_invalid.txt`: Failed or unreachable IPs/URLs.
+- `log.txt`: Full detailed log of scanning activities.
+- `cors_detected.txt`: IPs/URLs where CORS headers were found (`Access-Control-Allow-Origin`).
 
 ---
 
 ## 🌐 Cross-Platform Compatibility
 
-HyperScanner is built in **Go**, making it compatible with the following platforms:
+HyperScanner runs seamlessly on:
 
-- **Windows**
-- **Linux**
-- **MacOS**
+- 🪟 Windows
+- 🐧 Linux
+- 🍎 macOS
+
+No additional setup needed — just **Go** installed.
 
 ---
 
-## 🖥️ GUI Version (In Progress)
+## 🖥️ GUI Version (Coming Soon)
 
-The GUI version of HyperScanner is underway, built using **Wails** for a modern desktop experience. Stay tuned for updates!
+We are building a beautiful, lightweight **GUI version** using **Wails**.  
+Stay tuned for an enhanced desktop experience with all HyperScanner features!
 
 ---
 
 ## 🏗️ Contributing
 
-Contributions are welcome! If you'd like to improve HyperScanner or fix any issues, please follow these steps:
+We welcome contributions! Here's how you can help:
 
-1. Fork the repository.
-2. Create a new branch for your feature or bug fix.
-3. Submit a pull request with a detailed description of your changes.
+1. **Fork** the repository.
+2. **Create** a new branch (`feature/your-feature-name`).
+3. **Commit** your changes with clear messages.
+4. **Open** a Pull Request (PR) explaining your changes.
+
+Let's make HyperScanner even better together! 🌟
 
 ---
 
 ## 📄 License
 
-HyperScanner is open-source software licensed under the [MIT License](LICENSE).
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
 ---
 
 ## 📧 Contact
 
-For support, feature requests, or any queries, feel free to reach out:
+For support, feedback, or feature requests:
 
 - GitHub: [nxneeraj/hxscanner](https://github.com/nxneeraj/hxscanner)
-- Email: neerajsahnx@gmail.com 
+- Email: neerajsahnx@gmail.com
 
 ---
 
 ## 🔮 Future Plans
 
-- Add terminal icons and detailed categories for better CLI output.
-- Complete and release the GUI version.
-- Enhance performance and scalability for large IP lists.
+- 🎯 Add terminal icons and detailed status code categories.
+- 🖥️ Complete and release the GUI version.
+- ⚡ Optimize performance for extremely large input lists.
+- 🌍 Add proxy and multi-threaded support.
+
+------
 
 > Build faster. Test smarter. Hack ethically.  
 > With 💥 from Team HyperGod-X 👾
