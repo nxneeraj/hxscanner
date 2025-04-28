@@ -75,11 +75,15 @@ hxscanner -i ips.txt -o my_results
 
 ## 📋 CLI Options
 
-| Option        | Description                                           |
-|---------------|-------------------------------------------------------|
-| `-i <file>`   | **Required.** Path to the input file (IPs or URLs).    |
-| `-o <dir>`    | **Optional.** Output directory (default: current folder). |
-| `--help` `-h`     | Show help and usage instructions.                     |
+| Option        | Description |
+| ------------- | ------------ |
+| `-i <file>`   | Input file with targets (IPs/Domains/URLs), one per line (required if `-f` not used) |
+| `-f <file>`   | Alias for `-i` |
+| `-w <number>` | Number of concurrent scanning workers (default: number of CPU cores) |
+| `-t <duration>` | HTTP request timeout (default: 5s) |
+| `-q`          | Quiet mode: suppress individual results (except errors/warnings) |
+| `--cors`      | Perform basic CORS vulnerability check on successful targets |
+| `-h`          | Show this help message |
 
 ---
 
