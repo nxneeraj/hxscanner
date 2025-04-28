@@ -1,4 +1,4 @@
-module github.com/nxneeraj/hxscanner
+module github.com/hx-corp/hxscanner
 
 go 1.24.2
 
